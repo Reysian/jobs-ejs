@@ -1,15 +1,35 @@
 const express = require("express");
-
 const app = express();
+const jobsRouter = require('./routes/jobs');
 
 app.set("view engine", "ejs");
 app.use(require("body-parser").urlencoded({ extended: true }));
+
+// Extra security packages:
+const helmet = require('helmet');
+const xss = require('xss-clean');
+const rateLimiter = require('express-rate-limit');
+app.use(
+ rateLimiter({
+   windowMs: 15 * 60 * 1000, // 15 minutes
+   max: 100, // limit each IP to 100 requests per windowMs
+ })
+);
+
 
 require("dotenv").config(); // to load the .env file into the process.env object
 const session = require("express-session");
 
 const MongoDBStore = require("connect-mongodb-session")(session);
 const url = process.env.MONGO_URI;
+
+const cookieParser = require("cookie-parser");
+const csrf = require("host-csrf");
+app.use(cookieParser(process.env.SESSION_SECRET));
+const csrfMiddleware = csrf.csrf();
+
+// CSRF token validation
+//app.use(csrfMiddleware);
 
 const store = new MongoDBStore({
   // may throw an error, which won't be caught
@@ -54,7 +74,12 @@ app.use("/sessions", require("./routes/sessionRoutes"));
 // let secretWord = "syzygy"; <-- comment this out or remove this line
 const secretWordRouter = require("./routes/secretWord");
 const auth = require("./middleware/auth");
-app.use("/secretWord", auth, secretWordRouter);
+
+// NOTE: csrfMiddleware stopping access. Revisit.
+app.use("/secretWord", auth, /*csrfMiddleware,*/ secretWordRouter);
+
+// Jobs router
+app.use("/jobs", auth, jobsRouter);
 
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);

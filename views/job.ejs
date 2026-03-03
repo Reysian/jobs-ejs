@@ -1,0 +1,10 @@
+<h2>Job Form</h2>
+<form action="<%= job ? `/jobs/update/${job._id}` : '/jobs' %>" method="POST">
+    <label name="Company">Company</label>
+    <input name="company" value="<%= job ? job.company : null %>"/><br />
+    <label name="Position">Position</label>
+    <input name="position" value="<%= job ? job.position : null %>"/><br />
+    <label name="Status">Status</label>
+    <input name="status" value="<%= job ? job.status : null %>"/><br />
+    <button>Submit</button>
+</form>
